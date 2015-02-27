@@ -1,0 +1,153 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Field encrypt - Extension of the Field API to allow encryption of certain text fields - install
+ */
+
+/**
+ * Implements hook_enable().
+ *
+ * Set up the cache system to use my modified
+ * class which encrypts the cached fields. But
+ * do it after
+ */
+function field_encrypt_enable() {
+  // clear the cache of existing data
+  cache_clear_all('*', 'cache_field', TRUE);
+  // now set up the new class for this bin.
+  $old_cache = variable_get('cache_class_cache_field', NULL);
+  variable_set('field_encrypt_old_cache', $old_cache);
+  variable_set('cache_class_cache_field', 'FieldEncryptDatabaseCache');
+}
+
+/**
+ * Implements hook_disable().
+ *
+ * Restore the cache system to what it was
+ */
+function field_encrypt_disable() {
+  // clear the cache of existing data
+  cache_clear_all('*', 'cache_field', TRUE);
+
+  // set the old class for this bin, if there was one.
+  $old_cache = variable_get('field_encrypt_old_cache', NULL);
+  if ($old_cache===NULL) {
+    variable_del('cache_class_cache_field');
+  }
+  else {
+    variable_set('cache_class_cache_field', $old_cache);
+  }
+}
+
+/**
+ * Implements hook_requirements().
+ */
+function field_encrypt_requirements($phase) {
+  $requirements = array();
+  // Ensure translations don't break at install time
+  $t = get_t();
+
+  switch ($phase) {
+    case 'install':
+    case 'update':
+      $requirements['encryption'] = array(
+        'title' => $t('Encryption library'),
+      );
+
+      $encrypt_ok = extension_loaded('mcrypt');
+      if (!$encrypt_ok) {
+        $message = $t('Your version of PHP does not have the mcrypt extension, this module requires that library to function.');
+      }
+
+      if (!$encrypt_ok) {
+        $requirements['encryption']['value'] = $t('unavailable');
+        $requirements['encryption']['severity'] = REQUIREMENT_ERROR;
+        $requirements['encryption']['description'] = $message;
+      }
+      else {
+        $requirements['encryption']['value'] = $t('installed');
+      }
+      break;
+  }
+
+  return $requirements;
+}
+
+/**
+ * Implements hook_schema().
+ *
+ * Field definitions stolen from field_sql_storage
+ */
+function field_encrypt_schema() {
+  $schema['field_encrypt'] = array(
+    'fields' => array(
+      'entity_type' => array(
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The entity type this data is attached to',
+      ),
+      'bundle' => array(
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The field instance bundle to which this row belongs, used when deleting a field instance',
+      ),
+      'deleted' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'A boolean indicating whether this data item has been deleted'
+      ),
+      'entity_id' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'The entity id this data is attached to',
+      ),
+      'revision_id' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'The entity revision id this data is attached to, or NULL if the entity type is not versioned',
+      ),
+      'field_name' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'description' => 'The name of this field.',
+      ),
+      'language' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The language for this data item.',
+      ),
+      'delta' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'The sequence number for this data item, used for multi-value fields',
+      ),
+      'value' => array(
+        'type' => 'text',
+        'size' => 'medium',
+        'description' => 'The encrypted item for this entity field language/delta.',
+      ),
+    ),
+    'primary key' => array('field_name', 'entity_type', 'entity_id', 'revision_id', 'delta', 'language'),
+    'indexes' => array(
+      'field_name' => array('field_name'),
+      'entity_type' => array('entity_type'),
+      'entity_id' => array('entity_id'),
+      'revision_id' => array('revision_id'),
+    ),
+  );
+  return $schema;
+}

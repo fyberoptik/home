@@ -1,0 +1,109 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Field encrypt - Extension of the Field API to allow encryption of fields
+ *
+ * This module allows fields that already exist to be encrypted however once a field
+ * table has data any changes to the table structure are forbidden. So encrypted values
+ * are held in separate table rather than the original table (which would have been more
+ * efficient).
+ *
+ *
+ * @TODO
+ *   a. Replace single table with one table per field
+ *   b. Use Batch API for switching encryption on and off, and changing phrase
+ *   c. Track entity and field deletion?
+ */
+define('FIELD_ENCRYPT_DEFAULT', 'Lost in France');
+define('FIELD_ENCRYPT_PERMISSION', 'administer text field encryption');
+
+/**
+ * Implements hook_permission().
+ */
+function field_encrypt_permission() {
+  return array(
+    FIELD_ENCRYPT_PERMISSION => array(
+      'title' => t('Administer text field encryption'),
+      'description' => t('Allows certain text fields to be individually encrypted so that their data is better protected.'),
+      'restrict access' => TRUE,
+    ),
+  );
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function field_encrypt_form_field_ui_field_edit_form_alter(&$form, &$form_state, $form_id) {
+  module_load_include('inc', 'field_encrypt', 'field_encrypt.admin');
+  return _field_encrypt_field_settings_form_alter($form, $form_state, $form_id);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function field_encrypt_form_system_modules_alter(&$form, &$form_state, $form_id) {
+  // Find all the fields that are currently being encrypted
+  $fields = array();
+  foreach (field_info_fields() as $field_name => $field_info) {
+    if (!isset($field_info['settings']['field_encrypt']['encrypt'])) {
+      continue;
+    }
+    if (!$field_info['settings']['field_encrypt']['encrypt']) {
+      continue;
+    }
+    $fields[] = l(check_plain($field_name), 'admin/reports/fields');
+  }
+
+  // If there are any encrypted fields, prevent the module from being disabled
+  if (!empty($fields)) {
+    $form['modules']['Fields']['field_encrypt']['enable']['#disabled'] = TRUE;
+    $field_list = theme('item_list', array('items' => $fields));
+    $form['modules']['Fields']['field_encrypt']['#required_by'][] = t('Encrypted fields: <span class="admin-enabled">!fields</span>.', array('!fields' => $field_list));
+  }
+
+}
+
+/**
+ * Implements hook_field_storage_pre_insert().
+ */
+function field_encrypt_field_storage_pre_insert($entity_type, $entity, &$skip_fields) {
+  module_load_include('inc', 'field_encrypt');
+  _field_encrypt_field_storage_pre_insert($entity_type, $entity, $skip_fields);
+}
+
+/**
+ * Implements hook_field_storage_pre_update().
+ */
+function field_encrypt_field_storage_pre_update($entity_type, $entity, &$skip_fields) {
+  module_load_include('inc', 'field_encrypt');
+  _field_encrypt_field_storage_pre_update($entity_type, $entity, $skip_fields);
+}
+
+/**
+ * Implements hook_field_storage_pre_load().
+ */
+function field_encrypt_field_storage_pre_load($entity_type, $queried_entities, $age, &$skip_fields, $options) {
+  module_load_include('inc', 'field_encrypt');
+  _field_encrypt_field_storage_pre_load($entity_type, $queried_entities, $age, $skip_fields, $options);
+}
+
+/**
+ * Implements hook_entity_delete().
+ */
+function field_encrypt_entity_delete($entity, $type) {
+  list($id, $vid, $bundle) = entity_extract_ids($type, $entity);
+  db_delete('field_encrypt')->condition('entity_type', $type)->condition('entity_id', $id)
+    ->execute();
+}
+
+/**
+ * Implements hook_field_attach_delete_revision().
+ */
+function field_encrypt_field_attach_delete_revision($entity_type, $entity) {
+ list($id, $vid, $bundle) = entity_extract_ids($entity_type, $entity);
+
+  db_delete('field_encrypt')->condition('entity_id', $id)->condition('revision_id', $vid)
+    ->condition('entity_type', $entity_type)->execute();
+}
