@@ -1,0 +1,16 @@
+<?php 
+/**
+ * 
+ * 
+ */
+ 
+ function fyberoptik_items_help($path, $arg) {
+    switch ($path) {
+        case "admin/help#fyberoptik_items":
+            return'<p> . t("Test module") . '<p>';
+            break;
+    }
+ }
+ 
+
+?>

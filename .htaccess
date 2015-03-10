@@ -34,3 +34,19 @@ RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_URI} !=/favicon.ico
 RewriteRule ^(.*)$ index.php?q=$1 [L,QSA]
 
+#AuthUserFile /home/fyberopt/.htpasswd
+#AuthName "Authorized personnel only."
+#AuthType Basic
+#Require valid-user
+
+
+# enable PHP error logging
+#php_flag  log_errors on
+#php_value error_log  /home/path/public_html/domain/PHP_errors.log
+
+AuthType Basic
+AuthName "Authorized personnel only."
+AuthUserFile "/home/fyberopt/.htpasswds/git/testfyber/passwd"
+require valid-user
+Allow from 86.132.64.38
+Satisfy Any
