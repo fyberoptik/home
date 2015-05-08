@@ -43,3 +43,25 @@ h1, h2 {text-shadow: #c6c6c6 0em 0em 0.1em}
 
 /* Logo */
 a.logo >img {height:35px;}
+
+/* Canvas Area*/
+img#pixelT{width:90%;margin:0 5%}
+canvas{
+   position: absolute;
+   top: 200px;
+   left: 0;
+    margin-left: 25%;
+    margin-right: 25%;   
+    width: 50%;
+   height: auto;
+}
+canvas_save{
+   position: absolute;
+   top: 200px;
+   left: 0;
+    margin-left: 25%;
+    margin-right: 25%;   
+    width: 50%;
+   height: auto;
+}
+#canvasContainer {}

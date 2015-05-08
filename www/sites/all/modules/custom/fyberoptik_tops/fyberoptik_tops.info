@@ -1,5 +1,5 @@
 core = "7.x"
-name = "Fyberoptik Products"
+name = "Fyberoptik Tops"
 description = "This module will hook into product pages and display canvas items"
 
 package = fyberoptik
@@ -9,4 +9,3 @@ version = "7.x-1.0"
 
 ;files[] = fyberoptik.module
 
-scripts[] = js/lux.js
